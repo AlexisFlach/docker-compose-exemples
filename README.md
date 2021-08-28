@@ -25,13 +25,11 @@ En docker-compose fil består av fyra styck top-level keys:
 
 **Volumes** är var vi berättar för Docker att skapa nya Volumes.
 
-#### Exempel 1: visits
+### Exempel 1: ./visits
 
 <img src="https://img.shields.io/badge/javascript-%23323330.svg?style=for-the-badge&logo=javascript&logoColor=%23F7DF1E" alt="JavaScript" style="zoom:50%;" />
 
 <img src="https://img.shields.io/badge/express.js-%23404d59.svg?style=for-the-badge&logo=express&logoColor=%2361DAFB" alt="Express.js" style="zoom:50%;" />
 
-```bash
-Enkel webapplikation som räknar antalet besök. Varje besök lagras i en redis server.
-```
+**Enkel webapplikation som räknar antalet besök. Varje besök lagras i en redis server.**
 

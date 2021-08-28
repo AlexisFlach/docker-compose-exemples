@@ -1,10 +1,14 @@
-#### Deploying apps with Docker Compose
+####  Docker Compose
 
-https://github.com/AlexisFlach/docker-compose-exemples
+https://docs.docker.com/compose/compose-file/compose-file-v3/
 
-Moderna applikationer är uppbyggda av flera mindre *services* som interagerar och formar en applikation. Vi kallar detta för *microsservices*.
+Docker Compose är ett verktyg skapat av Docker i syfte att bygga och köra **multi-container applications**. Docker Compose är dels docker-compose.yml där vi kan definera vår applikationer och våra conteiners, men även Docker Compose CLI, som fungerar ungefär på samma sätt som Docker CLI.
 
-Docker Compose är en separat CLI som installeras med Docker och används för att starta upp flera Docker containers samtidigt. En av de största fördelarna med att använda sig av Docker Compose är att vi slipper mycket onödigt arbete i Docker CLI, exempelvis networking mellan containers.
+```
+docker-compose
+```
+
+ Docker compose introducerar konceptet av multi-container applications genom **docker-compose.yml**. Var noga med indentering när ni skriver en docker-compose.yml-fil. Filen innehåller all information om våra  Docker-baserade applikations komponenter så som services, networks och volumes.
 
 ```bash
 docker-compose --version
@@ -19,17 +23,321 @@ En docker-compose fil består av fyra styck top-level keys:
 
 **Version** är obligatorisk information och ska alltid vara på den första raden. Den definerar senaste versionen av Compose File Format (ungefär som API). Använd senaste versionen.
 
-**Services** är var vi definerar applikationens microservices. Compose deployar dessa som sina egna containers. Services 
+**Services** är var vi definerar applikationens komponenter. Compose deployar dessa som sina egna containers. Services 
 
 **Network** säger åt Docker att skapa nya nätverk.
 
 **Volumes** är var vi berättar för Docker att skapa nya Volumes.
 
-### Exempel 1: ./visits
+#### Exempel flask app
 
-<img src="https://img.shields.io/badge/javascript-%23323330.svg?style=for-the-badge&logo=javascript&logoColor=%23F7DF1E" alt="JavaScript" style="zoom:50%;" />
+```
+./flask-app
+```
 
-<img src="https://img.shields.io/badge/express.js-%23404d59.svg?style=for-the-badge&logo=express&logoColor=%2361DAFB" alt="Express.js" style="zoom:50%;" />
+Hur går vi tillväga för att *Docker Composa* denna applikation?
 
-**Enkel webapplikation som räknar antalet besök. Varje besök lagras i en redis server.**
+Vi ser ut att ha två services; flask appen och redis. Redis kommer fungera som en enklare databas.
+
+Så vi vill alltså köra två conteiners samtidigt och dessa ska veta om varandra.
+
+Men som vi ser så har vi endast en Dockerfile, vilken är till för att skapa flask app - imagen.
+
+**docker-compose.yml**
+
+```
+version: "3"
+
+services: 
+  flaskapp:
+    build: .
+    environment: 
+      - FLASK_ENV=developement
+    ports:
+      - 5000:5000
+  
+  redis:
+    image: redis:4.0.11-alpine
+```
+
+
+
+```
+docker-compose up
+```
+
+Så enkelt var det. 
+
+Låt oss bryta ned det:
+
+```
+version: "3" => Docker Compose version
+```
+
+
+
+```
+services: => här definieras vilka services/containers vår applikation består av
+```
+
+
+
+```
+flaskapp: => all information om vår flaskapp
+	build: . => i vilken kontext man hittar Dockerfile
+	environment: => environment variables som används i containern.
+	ports: => port forwarding från lokalt nätverk in i container
+redis:
+	image: => som att köra docker run redis:4.0.11-alpine
+```
+
+Vårt mål var att de skulle veta om varandra och kunna jobba ihop, men hur har det gått till?
+
+```
+docker network ls
+docker inspect <network id>
+```
+
+
+
+```
+[
+    {
+        "Name": "flask-app_default",
+        "Id": "37c471ae371319a5376ffe5ee995c23e8d4",
+        "Created": "2021-08-28T15:23:05.4527736Z",
+        "Scope": "local",
+        "Driver": "bridge",
+      
+        "Internal": false,
+        "Attachable": true,
+        "Ingress": false,
+        "ConfigFrom": {
+            "Network": ""
+        },
+        "ConfigOnly": false,
+        "Containers": {
+            "710a3b2ffc2b23370557ecab54d81a81a5e81219361e6b2ef4ae2c8a7723786f": {
+                "Name": "flask-app_redis_1",
+							...
+            },
+            "855ca6e2941172734ac54082a383ffdb639b086fa78dbc699de428db60438dc5": {
+                "Name": "flask-app_flaskapp_1",
+						....
+            }
+        }
+    }
+]
+```
+
+Två containers i network; flask_app_redis_1 och flask_app_flaskapp_1. The magic of Docker Compose.
+
+Docker Compose har skapat ett default network för applikationen.
+
+```
+redis = Redis(host="redis", db=0, socket_timeout=5, charset="utf-8", decode_responses=True)
+```
+
+I ett network kan containers kommunicera genom att använda namn.
+
+host="redis" är samma "redis" som i docker-compose:
+
+```
+...
+  redis:
+    image: redis:4.0.11-alpine
+```
+
+#### Lägg till build context och args
+
+```
+version: "3"
+
+services: 
+  flaskapp:
+    build: 
+      context: .
+      dockerfile: Dockerfile.v2
+      args:
+      - PYTHON_VERSION=3.7.0-alpine3.8
+    environment: 
+      - FLASK_ENV=development
+    ports:
+      - 5000:5000
+  
+  redis:
+    image: redis:4.0.11-alpine
+```
+
+#### Lägg till custom network
+
+```
+version: "3"
+
+services: 
+  flaskapp:
+    build: 
+      context: .
+      dockerfile: Dockerfile.v2
+      args:
+      - PYTHON_VERSION=3.7.0-alpine3.8
+    environment: 
+      - FLASK_ENV=developement
+    ports:
+      - 5000:5000
+    networks: 
+      - mynet
+  
+  redis:
+    image: redis:4.0.11-alpine
+  networks: 
+      - mynet
+
+networks:
+  mynet:
+```
+
+#### Lägg till volumes
+
+```
+docker volume ls
+```
+
+```
+version: "3"
+
+services: 
+  flaskapp:
+    build: 
+      context: .
+      dockerfile: Dockerfile.v2
+      args:
+      - PYTHON_VERSION=3.7.0-alpine3.8
+    environment: 
+      - FLASK_ENV=developement
+    ports:
+      - 5000:5000
+    networks: 
+      - mynet
+  
+  redis:
+    image: redis:4.0.11-alpine
+    networks: 
+      - mynet
+    volumes:
+      - mydata:/data
+
+networks:
+  mynet:
+
+volumes:
+  mydata:
+```
+
+###### docker-compose commands
+
+```
+docker-compose
+docker-compose top
+docker-compose stop
+docker-compose rm
+docker-compose ps
+docker-compose start
+docker-compose restart
+docker-compose kill
+docker-compose log
+docker-compose exec
+docker-compose run
+...
+```
+
+
+
+**exempel ./wordpress**
+
+För att starta igång ett wordpress-projekt med Docker-compose är detta allt du behöver göra:
+
+**docker-compose.yml**
+
+```
+version: "3"
+
+services:
+  wordpress:
+    image: wordpress:latest
+    depends_on: 
+      - db
+    ports:
+      - "8080:80"
+  db:
+    image: mariadb
+    environment: 
+      MYSQL_ROOT_PASSWORD=secret
+```
+
+2.
+
+```
+docker-compose up
+```
+
+3. Gå in på localhost:8080
+
+Kör sedan detta för att se att du har två containers igång:
+
+```
+docker-compose ps
+```
+
+För att stoppa:
+
+```
+docker-compose down
+```
+
+#### Utan Docker Compose
+
+```
+docker network create wp_app --driver bridge
+
+docker inspect wp_app
+```
+
+
+
+```
+docker pull mysql
+docker pull wordpress
+
+docker run -dit --name mysql-1 -e MYSQL_ROOT_PASSWORD=secret --network wp_app mysql
+
+docker run -dit --name wp-1 -p 8080:80 --network wp_app wordpress
+```
+
+**./traveling_wilburys**
+
+Här har vi ett docker-compose-fil som ska representera bandet The traveling Wilburys.
+
+```
+docker-compose up
+```
+
+Kolla dockers nätverk
+
+```
+docker network ls
+```
+
+```
+alexs-MacBook-Pro% docker network ls
+NETWORK ID     NAME                                DRIVER    SCOPE
+a1afd75d0382   bridge                              bridge    local
+9ee34b9850fe   host                                host      local
+219a790fea5d   none                                null      local
+5899d42f9ee0   wilbury_default                     bridge    local
+```
+
+
+
+
 

@@ -2,6 +2,8 @@
 
 https://docs.docker.com/compose/compose-file/compose-file-v3/
 
+https://github.com/AlexisFlach/docker-compose-exemples
+
 Docker Compose är ett verktyg skapat av Docker i syfte att bygga och köra **multi-container applications**. Docker Compose är dels docker-compose.yml där vi kan definera vår applikationer och våra conteiners, men även Docker Compose CLI, som fungerar ungefär på samma sätt som Docker CLI.
 
 ```
@@ -28,6 +30,73 @@ En docker-compose fil består av fyra styck top-level keys:
 **Network** säger åt Docker att skapa nya nätverk.
 
 **Volumes** är var vi berättar för Docker att skapa nya Volumes.
+
+```
+version: '3'
+
+services: 
+  api:
+    build: ./api
+    volumes:
+      - /app/node_modules
+      - ./api:/app
+    ports:
+      - 4001:4001
+  client:
+    image: php:apache
+    volumes: 
+      - ./client:/var/www/html
+    ports:
+      - 5001:80
+    depends_on:
+      - api
+```
+
+Vi har alltså två containers, en för vår api och för vad som ska visas på hemsidan(frontend). 
+
+Lås oss först fundera lite på alla steg vi hade varit tvungna att ta för att få denna simpla applikation att fungera om vi inte hade kunnat använda oss av docker compose.
+
+1. Dockerfile för api.
+
+I bägga fall skulle vi behöva skapa en Dockerfile.
+
+Men efter det hade vi även behövt lägga till
+
+```
+docker build -t myrepo/myapp:mytag .
+```
+
+```
+docker run -p 4001:4001 -v /api/node_modules - $(pwd):/api myrepo/myapp:mytag
+```
+
+Därefter samma sak med Client.
+
+Den stora skillnaden kommer när vi kör
+
+```
+docker network cli
+
+a583d249fe95   node-php_default         bridge    local
+```
+
+Docker Compose har automatiskt skapat ett nätverk för vår app.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #### Exempel flask app
 
@@ -193,42 +262,7 @@ networks:
 
 #### Lägg till volumes
 
-```
-docker volume ls
-```
 
-
-
-```
-version: "3"
-
-services: 
-  flaskapp:
-    build: 
-      context: .
-      dockerfile: Dockerfile.v2
-      args:
-      - PYTHON_VERSION=3.7.0-alpine3.8
-    environment: 
-      - FLASK_ENV=developement
-    ports:
-      - 5000:5000
-    networks: 
-      - mynet
-  
-  redis:
-    image: redis:4.0.11-alpine
-    networks: 
-      - mynet
-    volumes:
-      - mydata:/data
-
-networks:
-  mynet:
-
-volumes:
-  mydata:
-```
 
 ###### docker-compose commands
 
@@ -249,7 +283,9 @@ docker-compose run
 
 
 
-**exempel ./wordpress**
+#### 2.
+
+**./wordpress**
 
 För att starta igång ett wordpress-projekt med Docker-compose är detta allt du behöver göra:
 
@@ -310,6 +346,8 @@ docker run -dit --name mysql-1 -e MYSQL_ROOT_PASSWORD=secret --network wp_app my
 docker run -dit --name wp-1 -p 8080:80 --network wp_app wordpress
 ```
 
+#### 3 
+
 **./traveling_wilburys**
 
 Här har vi ett docker-compose-fil som ska representera bandet The traveling Wilburys.
@@ -324,6 +362,8 @@ Kolla dockers nätverk
 docker network ls
 ```
 
+
+
 ```
 alexs-MacBook-Pro% docker network ls
 NETWORK ID     NAME                                DRIVER    SCOPE
@@ -335,5 +375,5 @@ a1afd75d0382   bridge                              bridge    local
 
 
 
-
+#### 
 

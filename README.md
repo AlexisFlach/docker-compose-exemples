@@ -74,13 +74,9 @@ Låt oss bryta ned det:
 version: "3" => Docker Compose version
 ```
 
-
-
 ```
 services: => här definieras vilka services/containers vår applikation består av
 ```
-
-
 
 ```
 flaskapp: => all information om vår flaskapp
@@ -97,8 +93,6 @@ Vårt mål var att de skulle veta om varandra och kunna jobba ihop, men hur har 
 docker network ls
 docker inspect <network id>
 ```
-
-
 
 ```
 [
@@ -202,6 +196,8 @@ networks:
 ```
 docker volume ls
 ```
+
+
 
 ```
 version: "3"
